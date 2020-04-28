@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.status import (HTTP_201_CREATED, HTTP_200_OK,  HTTP_400_BAD_REQUEST)
 from rest_framework.permissions import AllowAny
 from django.core.paginator import Paginator
+from django.core.cache import cache
 import json
 # Create your views here.
 
@@ -13,10 +14,17 @@ def paginated_response(paginated_questions, page_results):
         "Previous": "",
         "Next":"",
         "Count": paginated_questions.count,
+        "status": "01",
         "results": page_results.object_list
     }
     return payload
 
+def set_cache(key, value):
+    cache.set(key, value)
+    pass
+
+def get_cache(key):
+    return cache.get(key)
 
 class QuestionFilter(APIView):
     permission_classes = (AllowAny, )
@@ -33,20 +41,27 @@ class QuestionFilter(APIView):
             sort = request.data.get('sort', None)
             tagged = request.data.get('tagged', None)
 
-            params = '?page=%s&pagesize=%s&order=%s&min=%s&max=%s&sort=%s&fromdate=%s&todate=%s&site=stackoverflow'%(page,pagesize,order,_min,_max,sort,fromdate,todate)
-            resp = requests.get('https://api.stackexchange.com/2.2/questions%s'%(params))
-            myqueryset = json.loads(resp.text)['items']
-        
+            query = '?page=%s&pagesize=%s&order=%s&min=%s&max=%s&sort=%s&fromdate=%s&todate=%s&site=stackoverflow'%(page,pagesize,order,_min,_max,sort,fromdate,todate)
 
-            paginate_number = request.data.get('paginate_number', None)
-            paginated_questions = Paginator(myqueryset, pagesize)
-            # print("paginated_questions.previous_page_number()", paginated_questions.previous_page_number()) 
-            page_results = paginated_questions.page(paginate_number)
-            # print("main results", paginated_questions.count)
-            final_result = paginated_response(paginated_questions, page_results)
-            print("paginated result", final_result)
-            return Response(final_result, status=HTTP_200_OK)
+            if query in cache:
+                final_result = cache.get(query)
+                return Response(final_result, status=HTTP_200_OK)
+            else:
+                resp = requests.get('https://api.stackexchange.com/2.2/questions%s'%(query))
+                myqueryset = json.loads(resp.text)['items']
+                paginate_number = request.data.get('paginate_number', None)
+                # Pagination
+                paginated_questions = Paginator(myqueryset, pagesize)
+                page_results = paginated_questions.page(paginate_number)
+                final_result = paginated_response(paginated_questions, page_results)
+                # Cache QUESTION 
+                set_cache(query, final_result) 
+                return Response(final_result, status=HTTP_200_OK)
         except:
-            return Response("Sorry query could not be retrived", status=HTTP_400_BAD_REQUEST)
+            payload = {
+                "status": "00",
+                "results": "Sorry TeamWave Tester! Something bad went on during query"
+            }
+            return Response(payload, status=HTTP_400_BAD_REQUEST)
 
       
