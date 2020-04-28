@@ -20,7 +20,8 @@ def custom_paginator(myqueryset, pagesize, page):
     if previous <= 0:
         previous = None
     _next = page + 1
-
+    if _next * page > pagesize:
+        _next = None
     final_result = {
         "Previous": previous,
         "Next": _next,
