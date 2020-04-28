@@ -134,41 +134,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
 STATIC_URL = '/static/'
-if 'DATABASE_URL' in os.environ:
-    DEBUG = False
-    CACHES = {
-        "default": {
-            "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": os.environ["REDISGREEN_URL"],
-            "OPTIONS": {
-                "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            }
-        }
-    }
-    CACHALOT_ENABLED = True
-
-    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
-    SESSION_CACHE_ALIAS = "default"
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        }
-    }
-    DEBUG = True
-    if 'FORTUNE_ENV' in os.environ:
-        DATABASES = {
-            'default': {
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',
-            # 'NAME': 'new_kudigo',
-            'NAME': 'kudigo_backup',
-            'USER': 'postgres',
-            'PASSWORD': 'new_password',
-            'HOST': 'LOCALHOST',
-            'PORT': '5433',
-            }
-        }
 
 ADMINS = (
     ('TeamWork Assignment', 'fortune2test@gmail.com'),
