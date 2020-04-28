@@ -1,7 +1,7 @@
 from django.core.cache import cache
 
 def set_cache(key, value):
-    cache.set(key, value)
+    cache.set(key, value, timeout=None)
     print("Cache just got set with key: %s"%(key))
     pass
 

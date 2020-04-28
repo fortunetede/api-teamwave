@@ -10,15 +10,19 @@ import json
 from search_queries.utils import set_cache, get_cache
 # Create your views here.
 
-def paginated_response(paginated_questions, page_results):
-    payload = {
+
+
+def custom_paginator(myqueryset, pagesize, paginate_number):
+    paginated_questions = Paginator(myqueryset, pagesize)
+    page_results = paginated_questions.page(paginate_number)
+    final_result = {
         "Previous": "",
         "Next":"",
         "Count": paginated_questions.count,
         "status": "01",
         "results": page_results.object_list
     }
-    return payload
+    return final_result
 
 
 class QuestionFilter(APIView):
@@ -46,9 +50,7 @@ class QuestionFilter(APIView):
                 myqueryset = json.loads(resp.text)['items']
                 paginate_number = request.data.get('paginate_number', None)
                 # Pagination
-                paginated_questions = Paginator(myqueryset, pagesize)
-                page_results = paginated_questions.page(paginate_number)
-                final_result = paginated_response(paginated_questions, page_results)
+                final_result = custom_paginator(myqueryset, pagesize, paginate_number)
                 # Cache QUESTION 
                 set_cache(query, final_result) 
                 return Response(final_result, status=HTTP_200_OK)
