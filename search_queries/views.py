@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny
 from django.core.paginator import Paginator
 from django.core.cache import cache
 import json
+from search_queries.utils import set_cache, get_cache
 # Create your views here.
 
 def paginated_response(paginated_questions, page_results):
@@ -19,12 +20,6 @@ def paginated_response(paginated_questions, page_results):
     }
     return payload
 
-def set_cache(key, value):
-    cache.set(key, value)
-    pass
-
-def get_cache(key):
-    return cache.get(key)
 
 class QuestionFilter(APIView):
     permission_classes = (AllowAny, )
@@ -44,7 +39,7 @@ class QuestionFilter(APIView):
             query = '?page=%s&pagesize=%s&order=%s&min=%s&max=%s&sort=%s&fromdate=%s&todate=%s&site=stackoverflow'%(page,pagesize,order,_min,_max,sort,fromdate,todate)
 
             if query in cache:
-                final_result = cache.get(query)
+                final_result = get_cache(query)
                 return Response(final_result, status=HTTP_200_OK)
             else:
                 resp = requests.get('https://api.stackexchange.com/2.2/questions%s'%(query))
