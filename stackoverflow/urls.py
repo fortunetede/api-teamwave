@@ -22,6 +22,5 @@ from django.contrib import admin
 urlpatterns = [
     path('api/v1.0/', include('search_queries.urls',)),
     path('NEWA19Dxe25/', admin.site.urls),
-    # path('s3direct/', include('s3direct.urls')),
 ]
 
