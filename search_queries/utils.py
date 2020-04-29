@@ -14,6 +14,7 @@ def get_cache(key):
 def custom_paginator(myqueryset, pagesize, client_page_pagination):
     paginated_questions = Paginator(myqueryset, 5)
     page_results = paginated_questions.page(int(client_page_pagination))
+    print("page_results", page_results)
     # previous and next
     previous = int(client_page_pagination) - 1
     if previous <= 0:

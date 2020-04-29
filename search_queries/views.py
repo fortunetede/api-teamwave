@@ -17,66 +17,61 @@ class QuestionFilter(APIView):
     permission_classes = (AllowAny, )
 
     def post(self, request, *args, **kwargs):
-    # try:
-        print("req.data", request.data)
-        page = request.data.get('page', None)
-        pagesize = request.data.get('pagesize', None)
-        fromdate = request.data.get('fromdate', None)
-        todate = request.data.get('todate', None)
-        order = request.data.get('order', None)
-        _min = request.data.get('min', None)
-        _max = request.data.get('max', None)
-        sort = request.data.get('sort', None)
-        tagged = request.data.get('tagged', None)
-        client_page_pagination = request.data.get('client_page_pagination', None)
-        
+        try:
+            print("req.data", request.data)
+            page = request.data.get('page', None)
+            pagesize = request.data.get('pagesize', None)
+            fromdate = request.data.get('fromdate', None)
+            todate = request.data.get('todate', None)
+            order = request.data.get('order', None)
+            _min = request.data.get('min', None)
+            _max = request.data.get('max', None)
+            sort = request.data.get('sort', None)
+            tagged = request.data.get('tagged', None)
+            client_page_pagination = request.data.get('client_page_pagination', None)
+            
 
-        if pagesize == "":
-            pagesize = 1
+            if pagesize == "":
+                pagesize = 1
 
-        if page == "":
-            page = 1
-        if fromdate:
-            fromdate = date_to_seconds(fromdate)
-        if todate:
-            todate = date_to_seconds(todate)
-        if _min:
-            _min = date_to_seconds(_min)
-        if _max:
-            _max = date_to_seconds(_max)
+            if page == "":
+                page = 1
+            if fromdate:
+                fromdate = date_to_seconds(fromdate)
+            if todate:
+                todate = date_to_seconds(todate)
+            if _min:
+                _min = date_to_seconds(_min)
+            if _max:
+                _max = date_to_seconds(_max)
 
-        print("page", page)
-        print("pagesize", pagesize)
-        print("fromdate", fromdate)
-        print("todate", todate)
-        print("order", order)
-        print("sort", sort)
-        print("tagged", tagged)
-        print("min",  _min)
-        print("max", _max)
+            query = '?page=%s&pagesize=%s&order=%s&min=%s&max=%s&sort=%s&fromdate=%s&todate=%s&tagged=%s&site=stackoverflow'%(page,pagesize,order,_min,_max,sort,fromdate,todate,tagged)
+            cache_query = '?client_page_pagination=%s&page=%s&pagesize=%s&order=%s&min=%s&max=%s&sort=%s&fromdate=%s&todate=%s&tagged=%s&site=stackoverflow'%(client_page_pagination,page,pagesize,order,_min,_max,sort,fromdate,todate,tagged)
+            
+            print("query", query)
+            if cache_query in cache:
+                final_result = get_cache(cache_query)
+                return Response(final_result, status=HTTP_200_OK)
+            else:
+                resp = requests.get('https://api.stackexchange.com/2.2/questions%s'%(query))
+                print("main guy", json.loads(resp.text))
+                if json.loads(resp.text)['items']:
+                    myqueryset = json.loads(resp.text)['items']
+                    # Pagination
+                    final_result = custom_paginator(myqueryset, pagesize,client_page_pagination )
+                    # Cache QUESTION 
+                    set_cache(cache_query, final_result) 
+                    return Response(final_result, status=HTTP_200_OK)
+                else:
+                    payload = {
+                        "results": "Results not found"
+                    }
+                    return Response(payload)
 
-        query = '?page=%s&pagesize=%s&order=%s&min=%s&max=%s&sort=%s&fromdate=%s&todate=%s&tagged=%s&site=stackoverflow'%(page,pagesize,order,_min,_max,sort,fromdate,todate,tagged)
-        cache_query = '?client_page_pagination=%s&page=%s&pagesize=%s&order=%s&min=%s&max=%s&sort=%s&fromdate=%s&todate=%s&tagged=%s&site=stackoverflow'%(client_page_pagination,page,pagesize,order,_min,_max,sort,fromdate,todate,tagged)
-        
-        print("query", query)
-        if cache_query in cache:
-            final_result = get_cache(cache_query)
-            return Response(final_result, status=HTTP_200_OK)
-        else:
-            resp = requests.get('https://api.stackexchange.com/2.2/questions%s'%(query))
-            print("dataaa", json.loads(resp.text))
-
-            myqueryset = json.loads(resp.text)['items']
-            # Pagination
-            final_result = custom_paginator(myqueryset, pagesize,client_page_pagination )
-            # Cache QUESTION 
-            set_cache(cache_query, final_result) 
-            return Response(final_result, status=HTTP_200_OK)
-    # except:
-    #     payload = {
-    #         "status": "00",
-    #         "results": "Sorry TeamWave Tester! Something bad went on during query"
-    #     }
-    #     return Response(payload, status=HTTP_400_BAD_REQUEST)
+        except:
+            payload = {
+                "results": "Sorry TeamWave Tester! Something bad went on during query"
+            }
+            return Response(payload)
 
     
