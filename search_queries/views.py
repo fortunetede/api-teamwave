@@ -7,8 +7,10 @@ from rest_framework.permissions import AllowAny
 
 from django.core.cache import cache
 import json
-from search_queries.utils import set_cache, get_cache, custom_paginator
+from django.core.paginator import EmptyPage, Paginator
+from search_queries.utils import set_cache, get_cache, custom_paginator, date_to_seconds
 # Create your views here.
+
 
 
 class QuestionFilter(APIView):
@@ -26,19 +28,49 @@ class QuestionFilter(APIView):
         _max = request.data.get('max', None)
         sort = request.data.get('sort', None)
         tagged = request.data.get('tagged', None)
+        client_page_pagination = request.data.get('client_page_pagination', None)
+        
 
-        query = '?page=%s&pagesize=%s&order=%s&min=%s&max=%s&sort=%s&fromdate=%s&todate=%s&site=stackoverflow'%(page,pagesize,order,_min,_max,sort,fromdate,todate)
+        if pagesize == "":
+            pagesize = 1
 
-        if query in cache:
-            final_result = get_cache(query)
+        if page == "":
+            page = 1
+        if fromdate:
+            fromdate = date_to_seconds(fromdate)
+        if todate:
+            todate = date_to_seconds(todate)
+        if _min:
+            _min = date_to_seconds(_min)
+        if _max:
+            _max = date_to_seconds(_max)
+
+        print("page", page)
+        print("pagesize", pagesize)
+        print("fromdate", fromdate)
+        print("todate", todate)
+        print("order", order)
+        print("sort", sort)
+        print("tagged", tagged)
+        print("min",  _min)
+        print("max", _max)
+
+        query = '?page=%s&pagesize=%s&order=%s&min=%s&max=%s&sort=%s&fromdate=%s&todate=%s&tagged=%s&site=stackoverflow'%(page,pagesize,order,_min,_max,sort,fromdate,todate,tagged)
+        cache_query = '?client_page_pagination=%s&page=%s&pagesize=%s&order=%s&min=%s&max=%s&sort=%s&fromdate=%s&todate=%s&tagged=%s&site=stackoverflow'%(client_page_pagination,page,pagesize,order,_min,_max,sort,fromdate,todate,tagged)
+        
+        print("query", query)
+        if cache_query in cache:
+            final_result = get_cache(cache_query)
             return Response(final_result, status=HTTP_200_OK)
         else:
             resp = requests.get('https://api.stackexchange.com/2.2/questions%s'%(query))
+            print("dataaa", json.loads(resp.text))
+
             myqueryset = json.loads(resp.text)['items']
             # Pagination
-            final_result = custom_paginator(myqueryset, pagesize, page)
+            final_result = custom_paginator(myqueryset, pagesize,client_page_pagination )
             # Cache QUESTION 
-            set_cache(query, final_result) 
+            set_cache(cache_query, final_result) 
             return Response(final_result, status=HTTP_200_OK)
     # except:
     #     payload = {
@@ -47,4 +79,4 @@ class QuestionFilter(APIView):
     #     }
     #     return Response(payload, status=HTTP_400_BAD_REQUEST)
 
-      
+    
